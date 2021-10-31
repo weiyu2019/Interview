@@ -26,6 +26,8 @@ hyperloglog—— 应用场景：不精准统计
 
 GEO——应用场景：经纬度统计
 
+![image-20211031102939567](C:\Users\11625\AppData\Roaming\Typora\typora-user-images\image-20211031102939567.png)
+
 
 
 
@@ -65,3 +67,15 @@ hyperloglog——专门用于基数统计
 
 
 缓存击穿——双缓存机制：主A从B、先更B再A、先查A再查B、B的过期时间多于A
+
+
+
+## 分布式锁
+
+redis实现分布式锁
+
+setnx
+
+- 保证一个客户端只能删除自己相关的锁
+- 设置过期时间并且保证锁的过期大于业务执行时间发（续约问题）
+- 
