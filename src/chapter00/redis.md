@@ -26,7 +26,7 @@ hyperloglog—— 应用场景：不精准统计
 
 GEO——应用场景：经纬度统计
 
-![image-20211031102939567](C:\Users\11625\AppData\Roaming\Typora\typora-user-images\image-20211031102939567.png)
+![image-20211031102939567](image-20211031102939567.png)
 
 
 
@@ -62,7 +62,7 @@ hyperloglog——专门用于基数统计
 
 
 
-![image-20211031010326753](C:\Users\11625\AppData\Roaming\Typora\typora-user-images\image-20211031010326753.png)
+![image-20211031010326753](image-20211031010326753.png)
 
 
 
