@@ -54,6 +54,8 @@ Golang面试问题汇总, 这里主要分为 Golang, Mysql, Redis, Network Proto
  |           44                |     [Go中两个Nil可能不相等吗](#Go中两个Nil可能不相等吗)                                                         |        
  |           45                |     [Goroutine和KernelThread之间是什么关系](#Goroutine和KernelThread之间是什么关系)                            |        
  |           46                |     [为何GPM调度要有P](#为何GPM调度要有P)                                                                     |        
+ |           47                |     [如何在goroutine执行一半就退出协程](#如何在goroutine执行一半就退出协程)                                       |   
+ 
  
  ### Mysql基础
 
@@ -202,7 +204,7 @@ ch := make(chan int, 2) 有缓冲channel不要求发送和接收操作同步.
 
 CSP模型是上个世纪七十年代提出的,不同于传统的多线程通过共享内存来通信，CSP讲究的是“以通信的方式来共享内存”。用于描述两个独立的并发实体通过共享的通讯 channel(管道)进行通信的并发模型。 CSP中channel是第一类对象，它不关注发送消息的实体，而关注与发送消息时使用的channel。
 
-Golang中channel 是被单独创建并且可以在进程之间传递，它的通信模式类似于`boss-worker`模式的，一个实体通过将消息发送到channel 中，然后又监听这个 channel 的实体处理，两个实体之间是匿名的，这个就实现实体中间的解耦，其中 channel 是同步的一个消息被发送到 channel 中，最终是一定要被另外的实体消费掉的，在实现原理上其实类似一个阻塞的消息队列。
+Golang中 channel是被单独创建并且可以在进程之间传递，它的通信模式类似于`boss-worker`模式的，一个实体通过将消息发送到channel 中，然后又监听这个 channel 的实体处理，两个实体之间是匿名的，这个就实现实体中间的解耦，其中 channel 是同步的一个消息被发送到 channel 中，最终是一定要被另外的实体消费掉的，在实现原理上其实类似一个阻塞的消息队列。
 
 Goroutine 是Golang实际并发执行的实体，它底层是使用协程(coroutine)实现并发，coroutine是一种运行在用户态的用户线程，类似于greenthread，go底层选择使用coroutine的出发点是因为，
 
@@ -214,7 +216,7 @@ Goroutine 是Golang实际并发执行的实体，它底层是使用协程(corout
 
 Golang中的Goroutine的特性:
 
-Golang内部有三个对象: P对象(processor) 代表上下文（或者可以认为是cpu），M(work thread)代表工作线程，G对象（goroutine）.
+Golang内部有三个对象: P对象(processor) 代表上下文（或者可以认为是cpu），M(work thread)代表工作线程，G对象(goroutine).
 
 正常情况下一个CPU对象启一个工作线程对象，线程去检查并执行goroutine对象。碰到goroutine对象阻塞的时候，会启动一个新的工作线程，以充分利用cpu资源。所以有时候线程对象会比处理器对象多很多.
 
@@ -278,7 +280,6 @@ func main() {
     fmt.Println("finished")
 }
 ```
-
 当主 goroutine 运行到 `<-ch` 接受 channel 的值的时候，如果该  channel 中没有数据，就会一直阻塞等待，直到有值。 这样就可以简单实现并发控制
 
 * 通过sync包中的WaitGroup实现并发控制
@@ -291,7 +292,7 @@ Goroutine是异步执行的，有的时候为了防止在结束main函数的时�
 * Done, 相当于Add(-1).
 * Wait, 执行后会堵塞主线程，直到WaitGroup 里的值减至0.
 
-在主goroutine 中 Add(delta int) 索要等待goroutine 的数量。在每一个goroutine 完成后 Done() 表示这一个goroutine 已经完成，当所有的 goroutine 都完成后，在主 goroutine 中 WaitGroup 返回。
+在主goroutine 中 Add(delta int) 索要等待goroutine 的数量。在每一个goroutine 完成后Done()表示这一个goroutine 已经完成，当所有的 goroutine 都完成后，在主 goroutine 中 WaitGroup 返回。
 
 ```go
 func main(){
@@ -354,11 +355,11 @@ exit status 2
 
 这个第二个修改方式: 将匿名函数中的 wg 的传入参数去掉，因为Go支持闭包类型，在匿名函数中可以直接使用外面的 wg 变量.
 
-* 在Go 1.7 以后引进的强大的Context上下文，实现并发控制.
+* 在Go 1.7以后引进的强大的Context上下文，实现并发控制.
 
 通常,在一些简单场景下使用 channel 和 WaitGroup 已经足够了，但是当面临一些复杂多变的网络并发场景下 `channel` 和 `WaitGroup` 显得有些力不从心了。
 
-比如一个网络请求 Request，每个Request 都需要开启一个 goroutine 做一些事情，这些 goroutine 又可能会开启其他的 goroutine，比如数据库和RPC服务。
+比如一个网络请求 Request，每个 Request 都需要开启一个 goroutine 做一些事情，这些 goroutine 又可能会开启其他的 goroutine，比如数据库和RPC服务。
 
 所以我们需要一种可以跟踪 goroutine 的方案，才可以达到控制他们的目的，这就是Go语言为我们提供的 Context，称之为上下文非常贴切，它就是goroutine 的上下文。
 
@@ -409,6 +410,7 @@ Context 对象是线程安全的，你可以把一个 Context 对象传递给任
 var slice []int
 slice[1] = 0
 ```
+
 此时slice的值是nil，这种情况可以用于需要返回slice的函数，当函数出现异常的时候，保证函数依然会有nil的返回值。
 
 `empty slice` 是指slice不为nil，但是slice没有值，slice的底层的空间是空的，此时的定义如下：
@@ -465,18 +467,15 @@ $ go run -race mysrc.go  // 编译和运行程序
 $ go build -race mycmd   // 构建程序
 $ go install -race mypkg // 安装程序
 ```
-
 要想解决数据竞争的问题可以使用互斥锁`sync.Mutex`,解决数据竞争(Data race),也可以使用管道解决,使用管道的效率要比互斥锁高.
 
 9. #### 什么是channel，为什么它可以做到线程安全
 
 Channel是Go中的一个核心类型，可以把它看成一个管道，通过它并发核心单元就可以发送或者接收数据进行通讯(communication),Channel也可以理解是一个先进先出的队列，通过管道进行通信。
 
-Golang的Channel,发送一个数据到Channel和从Channel接收一个数据都是原子性的。
+Golang的Channel, 发送一个数据到Channel和从Channel接收一个数据都是原子性的。
 
-Go的设计思想就是, 不要通过共享内存来通信，而是通过通信来共享内存，前者就是传统的加锁，后者就是Channel。
-
-也就是说，设计Channel的主要目的就是在多任务间传递数据的，本身就是安全的。
+Go的设计思想就是, 不要通过共享内存来通信，而是通过通信来共享内存，前者就是传统的加锁，后者就是Channel。也就是说，设计Channel的主要目的就是在多任务间传递数据的，本身就是安全的。
 
 10. #### Golang垃圾回收算法
 
@@ -4056,6 +4055,16 @@ M 被系统调用阻塞后，我们是期望把他既有未执行的任务分配
 
 因此使用 M 是不合理的，那么引入新的组件 P，把本地队列关联到 P 上，就能很好的解决这个问题。
 
+47. #### 如何在goroutine执行一半就退出协程
+
+在go中，调度时候也不是每个G都能一直处于运行状态，等G不能运行时，就把它存起来，再调度下一个能运行的G过来运行。暂时不能运行的G，P上会有个本地队列去存放这些这些G，P的本地队列存不下的话，还有个全局队列，干的事情也类似。
+
+在这个这个背景后， 通过goexit0 观察，做的事情就是将当前的协程G置为_Gdead状态，然后把它从M上摘下来，尝试放回到P的本地队列中。然后重新调度一波，获取另一个能跑的G，拿出来跑。
+
+因此只要执行 goexit 这个函数，当前协程就会退出，同时还能调度下一个可执行的协程出来跑。
+
+通过 runtime.Goexit()可以做到提前结束协程，且结束前还能执行到defer的内容• runtime.Goexit()其实是对goexit0的封装，只要执行 goexit0 这个函数，当前协程就会退出，同时还能调度下一个可执行的协程出来跑
+
 ### Mysql基础知识
 
 1. #### Mysql索引用的是什么算法
@@ -6812,9 +6821,9 @@ kafka的消息是不断追加到文件中的，这个特性使kafka可以充分�
 
 Kafka官方给出了测试数据(Raid-5，7200rpm)：
 
-顺序`I/O`: 600MB/s.
+* 顺序`I/O`: 600MB/s.
 
-随机`I/O`: 100KB/s.
+* 随机`I/O`: 100KB/s.
 
 * 零拷贝
 
@@ -6835,7 +6844,6 @@ Kafka官方给出了测试数据(Raid-5，7200rpm)：
 * 文件分段
 
 kafka的队列topic被分为了多个区partition，每个partition又分为多个段segment，所以一个队列中的消息实际上是保存在N多个片段文件中。
-
 
 <p align="center">
 <img width="300" align="center" src="../images/174.jpg" />
